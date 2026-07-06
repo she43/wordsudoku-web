@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Sudoku — A word twist on Sudoku</title>
+<meta name="description" content="Word Sudoku swaps numbers for letters. New puzzle every day, global leaderboard, four game modes. Play free on Android.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%231C2333%22/><text x=%2250%22 y=%2264%22 font-family=%22monospace%22 font-size=%2044%22 font-weight=%22700%22 fill=%22%23F5C84C%22 text-anchor=%22middle%22>P</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333;
+    --ink-soft:#2A3347;
+    --paper:#FBF7EE;
+    --highlight:#F5C84C;
+    --success:#3FA796;
+    --mistake:#E4572E;
+    --line: rgba(251,247,238,0.14);
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--font-body);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  a{color:inherit;}
+  img{max-width:100%; display:block;}
+
+  .wrap{max-width:1120px; margin:0 auto; padding:0 24px;}
+
+  /* NAV */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(28,35,51,0.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 24px; max-width:1120px; margin:0 auto;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--font-display); font-weight:700; font-size:1.15rem;
+    letter-spacing:-0.01em;
+  }
+  .logo-mark{
+    width:32px; height:32px; border-radius:8px;
+    background:var(--paper); color:var(--ink);
+    display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+    font-family:var(--font-mono); font-weight:700; font-size:0.62rem;
+    overflow:hidden; border:1.5px solid var(--ink);
+  }
+  .logo-mark span{display:flex; align-items:center; justify-content:center; border:0.5px solid rgba(28,35,51,0.15);}
+  .nav-links{display:flex; gap:32px; font-size:0.92rem; font-weight:500;}
+  .nav-links a{opacity:0.75; text-decoration:none; transition:opacity 0.2s;}
+  .nav-links a:hover, .nav-links a:focus-visible{opacity:1;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--font-body); font-weight:600; font-size:0.9rem;
+    padding:10px 20px; border-radius:10px;
+    text-decoration:none; border:none; cursor:pointer;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn:hover, .btn:focus-visible{transform:translateY(-1px);}
+  .btn-primary{background:var(--highlight); color:var(--ink);}
+  .btn-primary:hover{box-shadow:0 8px 20px rgba(245,200,76,0.25);}
+  .btn-ghost{background:transparent; color:var(--paper); border:1.5px solid var(--line);}
+
+  /* HERO */
+  .hero{
+    padding:88px 0 60px;
+    display:grid; grid-template-columns:1.1fr 0.9fr; gap:48px; align-items:center;
+  }
+  .eyebrow{
+    font-family:var(--font-mono); font-size:0.78rem; text-transform:uppercase;
+    letter-spacing:0.12em; color:var(--highlight); margin-bottom:18px; display:block;
+  }
+  h1{
+    font-family:var(--font-display); font-weight:700;
+    font-size:clamp(2.3rem, 4.6vw, 3.4rem);
+    line-height:1.05; letter-spacing:-0.02em; margin-bottom:20px;
+  }
+  h1 .accent{color:var(--highlight);}
+  .lede{font-size:1.08rem; color:rgba(251,247,238,0.72); max-width:46ch; margin-bottom:32px;}
+  .hero-ctas{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:28px;}
+  .hero-meta{
+    display:flex; gap:22px; font-family:var(--font-mono); font-size:0.78rem;
+    color:rgba(251,247,238,0.5); flex-wrap:wrap;
+  }
+  .hero-meta span{display:flex; align-items:center; gap:6px;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--success); display:inline-block;}
+
+  /* SIGNATURE GRID */
+  .grid-stage{
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .puzzle-grid{
+    display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr);
+    width:min(320px, 78vw); aspect-ratio:1;
+    background:var(--ink-soft); border-radius:16px; padding:10px; gap:6px;
+    border:1px solid var(--line);
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.5);
+  }
+  .cell{
+    background:var(--paper); border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-weight:700; color:var(--ink);
+    font-size:clamp(1.1rem, 3.4vw, 1.6rem);
+    opacity:0; transform:scale(0.6);
+    animation: pop 6s infinite;
+  }
+  .cell.block-b{background:#F0E9D8;}
+  @keyframes pop{
+    0%{opacity:0; transform:scale(0.5);}
+    6%{opacity:1; transform:scale(1);}
+    70%{opacity:1; transform:scale(1); box-shadow:none;}
+    76%{box-shadow:0 0 0 3px var(--success) inset;}
+    88%{box-shadow:0 0 0 3px var(--success) inset;}
+    94%{opacity:1;}
+    100%{opacity:0; transform:scale(0.5);}
+  }
+  .caption-under{
+    text-align:center; font-family:var(--font-mono); font-size:0.72rem;
+    color:rgba(251,247,238,0.45); margin-top:16px; letter-spacing:0.04em;
+  }
+
+  @media (max-width: 860px){
+    .hero{grid-template-columns:1fr; padding-top:48px;}
+    .grid-stage{order:-1;}
+  }
+
+  section{padding:70px 0;}
+  .section-head{max-width:56ch; margin-bottom:44px;}
+  .section-head .eyebrow{margin-bottom:12px;}
+  h2{
+    font-family:var(--font-display); font-weight:700;
+    font-size:clamp(1.7rem, 3vw, 2.2rem); letter-spacing:-0.01em; margin-bottom:14px;
+  }
+  .section-head p{color:rgba(251,247,238,0.65); font-size:1.02rem;}
+
+  /* MODES — laid out as a real 2x2 sudoku block, echoing the game itself */
+  .modes-block{
+    display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+    gap:3px; background:var(--highlight); border-radius:18px; padding:3px;
+    overflow:hidden;
+  }
+  .mode-cell{
+    background:var(--ink-soft); padding:32px 28px; min-height:180px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    transition:background 0.2s ease;
+  }
+  .mode-cell:hover{background:#333d54;}
+  .mode-tag{
+    font-family:var(--font-mono); font-size:0.7rem; letter-spacing:0.08em;
+    color:var(--highlight); text-transform:uppercase;
+  }
+  .mode-cell h3{font-family:var(--font-display); font-size:1.2rem; margin:10px 0 6px;}
+  .mode-cell p{color:rgba(251,247,238,0.6); font-size:0.92rem;}
+  @media (max-width:640px){
+    .modes-block{grid-template-columns:1fr;}
+  }
+
+  /* HOW TO PLAY — genuinely sequential, numbering earns its place */
+  .steps{list-style:none; counter-reset:step; display:flex; flex-direction:column; gap:0;}
+  .step{
+    counter-increment:step;
+    display:grid; grid-template-columns:56px 1fr; gap:20px;
+    padding:22px 0; border-bottom:1px solid var(--line);
+  }
+  .step:last-child{border-bottom:none;}
+  .step::before{
+    content:counter(step, decimal-leading-zero);
+    font-family:var(--font-mono); font-weight:700; color:var(--highlight); font-size:1.1rem;
+  }
+  .step h4{font-family:var(--font-display); font-size:1.02rem; margin-bottom:4px;}
+  .step p{color:rgba(251,247,238,0.62); font-size:0.94rem;}
+
+  /* SCREENSHOTS */
+  .shots{
+    display:flex; gap:16px; overflow-x:auto; padding:6px 4px 20px;
+    scroll-snap-type:x mandatory;
+  }
+  .shots::-webkit-scrollbar{height:6px;}
+  .shots::-webkit-scrollbar-thumb{background:var(--ink-soft); border-radius:3px;}
+  .shot{
+    flex:0 0 auto; width:190px; border-radius:14px; overflow:hidden;
+    border:1px solid var(--line); scroll-snap-align:start;
+    background:var(--ink-soft);
+  }
+  .shot img{width:100%; height:100%; object-fit:cover;}
+
+  /* DOWNLOAD CTA */
+  .cta-band{
+    background:var(--paper); color:var(--ink); border-radius:24px;
+    padding:56px 44px; display:flex; align-items:center; justify-content:space-between;
+    gap:32px; flex-wrap:wrap;
+  }
+  .cta-band h2{color:var(--ink);}
+  .cta-band p{color:rgba(28,35,51,0.68);}
+  .cta-band .btn-primary{background:var(--ink); color:var(--paper);}
+  .cta-band .btn-primary:hover{box-shadow:0 8px 20px rgba(28,35,51,0.25);}
+
+  footer{
+    border-top:1px solid var(--line); padding:36px 0; margin-top:20px;
+  }
+  .foot-row{
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:16px; font-size:0.85rem; color:rgba(251,247,238,0.5);
+  }
+  .foot-links{display:flex; gap:20px;}
+  .foot-links a{text-decoration:none; opacity:0.7;}
+  .foot-links a:hover{opacity:1;}
+
+  @media (prefers-reduced-motion: reduce){
+    .cell{animation:none; opacity:1; transform:none;}
+  }
+  :focus-visible{outline:2px solid var(--highlight); outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo">
+      <span class="logo-mark"><span>P</span><span>L</span><span>A</span><span>Y</span></span>
+      Word Sudoku
+    </div>
+    <div class="nav-links">
+      <a href="#modes">Modes</a>
+      <a href="#how">How to play</a>
+      <a href="#screens">Screenshots</a>
+    </div>
+    <a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=codz.she.wordsudoku">Get it on Google Play</a>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" style="padding-top:88px;">
+    <div>
+      <span class="eyebrow">Free · Android · New puzzle daily</span>
+      <h1>Same logic as Sudoku.<br>Solved with <span class="accent">letters</span>, not numbers.</h1>
+      <p class="lede">Every row, column, and block hides one word, spelled exactly once. One shared puzzle drops worldwide at midnight UTC — solve it clean and climb the daily board.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=codz.she.wordsudoku">Get it on Google Play</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+      <div class="hero-meta">
+        <span><span class="dot"></span>4×4 to 16×16 boards</span>
+        <span><span class="dot"></span>Works fully offline</span>
+        <span><span class="dot"></span>No sign-up to play</span>
+      </div>
+    </div>
+
+    <div class="grid-stage">
+      <div>
+        <div class="puzzle-grid" aria-hidden="true">
+          <div class="cell" style="animation-delay:0.0s">P</div>
+          <div class="cell" style="animation-delay:0.15s">L</div>
+          <div class="cell" style="animation-delay:0.3s">A</div>
+          <div class="cell" style="animation-delay:0.45s">Y</div>
+
+          <div class="cell block-b" style="animation-delay:0.6s">A</div>
+          <div class="cell block-b" style="animation-delay:0.75s">Y</div>
+          <div class="cell block-b" style="animation-delay:0.9s">P</div>
+          <div class="cell block-b" style="animation-delay:1.05s">L</div>
+
+          <div class="cell block-b" style="animation-delay:1.2s">L</div>
+          <div class="cell block-b" style="animation-delay:1.35s">P</div>
+          <div class="cell block-b" style="animation-delay:1.5s">Y</div>
+          <div class="cell block-b" style="animation-delay:1.65s">A</div>
+
+          <div class="cell" style="animation-delay:1.8s">Y</div>
+          <div class="cell" style="animation-delay:1.95s">A</div>
+          <div class="cell" style="animation-delay:2.1s">L</div>
+          <div class="cell" style="animation-delay:2.25s">P</div>
+        </div>
+        <div class="caption-under">P · L · A · Y — one of each, every row and column</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="modes">
+    <div class="section-head">
+      <span class="eyebrow">Four boards, one grid</span>
+      <h2>Pick your puzzle</h2>
+      <p>Each mode changes the rules of engagement, not the core logic — so what you learn in one carries into the rest.</p>
+    </div>
+    <div class="modes-block">
+      <div class="mode-cell">
+        <span class="mode-tag">Daily</span>
+        <div>
+          <h3>Daily Challenge</h3>
+          <p>One puzzle, shared by every player, reset at midnight UTC. Speed, accuracy, and hint count decide the leaderboard.</p>
+        </div>
+      </div>
+      <div class="mode-cell">
+        <span class="mode-tag">Progression</span>
+        <div>
+          <h3>Levels</h3>
+          <p>Start at a 4×4 warm-up and work up to a 16×16 board. Each size unlocks once the one before it is cleared.</p>
+        </div>
+      </div>
+      <div class="mode-cell">
+        <span class="mode-tag">Custom</span>
+        <div>
+          <h3>Wildcard</h3>
+          <p>Type any word — a name, a pet, a team — and the grid is built around it on the spot.</p>
+        </div>
+      </div>
+      <div class="mode-cell">
+        <span class="mode-tag">No timer</span>
+        <div>
+          <h3>Practice</h3>
+          <p>No clock, no ranking. A quiet board for learning the patterns before taking on the Daily.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="section-head">
+      <span class="eyebrow">The rules</span>
+      <h2>How a board gets solved</h2>
+    </div>
+    <ol class="steps">
+      <li class="step"><div><h4>Learn the hidden word</h4><p>Every puzzle is built around one word — its letters are the only pieces on the board.</p></div></li>
+      <li class="step"><div><h4>Fill without repeats</h4><p>Each row, column, and block must contain every letter of that word exactly once.</p></div></li>
+      <li class="step"><div><h4>Tap to place</h4><p>Select a cell, then pick a letter from the tray below the grid.</p></div></li>
+      <li class="step"><div><h4>Mind your mistakes</h4><p>Three slip-ups and the board resets — unless you revive and keep going.</p></div></li>
+      <li class="step"><div><h4>Beat the clock</h4><p>Faster, cleaner solves rank higher on that day's board.</p></div></li>
+    </ol>
+  </section>
+
+  <section id="screens">
+    <div class="section-head">
+      <span class="eyebrow">In the app</span>
+      <h2>A look at the board</h2>
+    </div>
+    <div class="shots">
+      <div class="shot"><img src="https://play-lh.googleusercontent.com/GKi2W6IuCcSxmR--s8IXdiM7xahVP_zWLkVq_3IiD_u-ExsojWPYtC_lS9gUHuNSKxVM-TOg55HZtAggDCBnYg=w526-h296" alt="Word Sudoku gameplay screenshot"></div>
+      <div class="shot"><img src="https://play-lh.googleusercontent.com/YeuTuBzNVjahGezWkzMeMtxEUt2iUfQ4UL11UWzmTT8Y8_jEVnHtyYgIaetABmZ-YCdgh_TD7TtsuJmjCwPT=w526-h296" alt="Word Sudoku level select screenshot"></div>
+      <div class="shot"><img src="https://play-lh.googleusercontent.com/kLyZUs9qzUNbFIEvYzPQssrOOFWXBvieNy-F__ne_uq2CN_Jen1ycwPS3XMmptTFF69aCjPDR4wttC_TYnYO=w526-h296" alt="Word Sudoku daily challenge screenshot"></div>
+      <div class="shot"><img src="https://play-lh.googleusercontent.com/BPRdxzIMgrF-8WfzZu4Ll6U5Egy4DN6xtsGW8br7ZbeaF9IMNdl6QDEMJ2y03yvRpftp9-XONZ-4oVsTndEVeCU=w526-h296" alt="Word Sudoku leaderboard screenshot"></div>
+      <div class="shot"><img src="https://play-lh.googleusercontent.com/jOzazFjcaGKzDUo6oXuFtG3FmsDM7A56YmUm1xwJqOIoP3mLdMudSZSVTB7Nu8jMn6WAVZGfHbUCBn2jXNFOM28=w526-h296" alt="Word Sudoku wildcard mode screenshot"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cta-band">
+      <div>
+        <h2>Today's puzzle is already live.</h2>
+        <p>Free to play, no account needed to start.</p>
+      </div>
+      <a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=codz.she.wordsudoku">Get it on Google Play</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-row">
+    <span>Word Sudoku — made by Shilpa T</span>
+    <div class="foot-links">
+      <a href="mailto:codzshe@gmail.com">codzshe@gmail.com</a>
+      <a href="https://sites.google.com/view/wordsudokuprivacypolicy/home">Privacy Policy</a>
+      <a href="https://play.google.com/store/apps/details?id=codz.she.wordsudoku">Google Play</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
